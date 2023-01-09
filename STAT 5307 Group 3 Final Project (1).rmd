@@ -1,0 +1,70 @@
+---
+title: "Modeling and forecasting of auto manufacturing in the United States"
+author: "Comfort Okewusi"
+date: '2022-11-15'
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+library(forecast)
+library(astsa)
+library(TSA)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#load the data file
+autoProd <- read.csv("DAUPNSA.csv")
+head(autoProd)
+dim(autoProd)
+
+#Any missing values?
+sum(is.na(autoProd))
+
+#change to date instead of char
+autoProd$DATE <- as.Date(autoProd$DATE)
+
+#change to time series
+autoProdTS <- ts(data=autoProd$DAUPNSA,frequency=12,start=c(1993,1),end=c(2022,9))
+
+#plot time series
+ts.plot(autoProdTS, ylab="Domestic Auto Production-Thousand Units")  #Shows trend and non-constant variance
+
+#acf of original data
+acf2(autoProdTS)
+
+#stabilize variance 
+logcars <- log(autoProdTS)
+
+#Remove trend
+adjustCars <- diff(logcars)
+
+#check ACF/PACF
+acf2(adjustCars)  #unstationary due to seasonality
+
+#seasonality check
+ggseasonplot(autoProdTS) #shows seasonality
+
+#seasonal differencing
+acf2(diff(adjustCars,12), 60)
+
+#model and diagnostics
+sarima((logcars), 0,1,2, 0,1,1, 12)
+
+#suggested model by autoarima() and diagnostics
+auto.arima(logcars)
+sarima(logcars, 1,1,1, 0,0,2,12)
+
+#Prediction for next 12 months:
+sarima.for(autoProdTS,12, 0,1,2, 0,1,1, 12)
+
+```
+
